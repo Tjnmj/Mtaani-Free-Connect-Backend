@@ -19,11 +19,28 @@ class CreateUserView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
 
-# List all packages  
+#  packages  
 class PackageListView(generics.ListAPIView):
     queryset           = Package.objects.filter(is_active=True)
     serializer_class   = PackageSerializer
     permission_classes = [AllowAny]  
+
+class PackageDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = Package.objects.all()
+    serializer_class   = PackageSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class PaymentListView(generics.ListAPIView):
+    queryset           = Payment.objects.select_related('session').order_by('-paid_at')
+    serializer_class   = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class PaymentDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = Payment.objects.all()
+    serializer_class   = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
 
 # Initiate M-Pesa payment 
@@ -99,6 +116,12 @@ class SessionStatusView(generics.RetrieveAPIView):
     queryset           = Session.objects.all()
     serializer_class   = SessionSerializer
     permission_classes = [AllowAny]
+
+
+class SessionDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = Session.objects.all()
+    serializer_class   = SessionSerializer
+    permission_classes = [IsAuthenticated]
   
 
 
@@ -125,6 +148,17 @@ class ActivateVoucherView(APIView):
         voucher.save()
         return Response({"session_id": str(session.id), "status": "active"})
 
+class VoucherListView(generics.ListAPIView):
+    queryset           = Voucher.objects.all().order_by('-id')
+    serializer_class   = VoucherSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class VoucherDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = Voucher.objects.all()
+    serializer_class   = VoucherSerializer
+    permission_classes = [IsAuthenticated]
+
 
 # Reconnect using M-Pesa code
 class ReconnectView(APIView):
@@ -139,7 +173,7 @@ class ReconnectView(APIView):
             return Response({"error": "Something went wrong"}, status=404)
 
         if session.status != 'active':
-            return Response({"error": "Session expired or cancelled"}, status=400)
+            return Response({"error": "Invalid Session"}, status=400)
 
         Reconnect.objects.create(
             mpesa_code = code,
@@ -190,6 +224,11 @@ class RouterListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
 
+class RouterDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = Router.objects.all()
+    serializer_class   = RouterSerializer
+    permission_classes = [IsAuthenticated]
+    
 # Hotspot users list
 class HotspotUserListView(generics.ListAPIView):
     serializer_class   = SessionSerializer

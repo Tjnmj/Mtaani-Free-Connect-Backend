@@ -56,7 +56,7 @@ class ReconnectSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return Reconnect.objects.create(**validated_data)  
-    
+#router
 class RouterSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Router

@@ -72,7 +72,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Nairobi'
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = 'static/'
@@ -96,4 +96,4 @@ MPESA_SHORTCODE       = '174379'
 MPESA_CONSUMER_KEY    = 'TrTWfrKATUb34uwnavyrZA15A0twpeFnXXZacxPQTRIdx8mD'
 MPESA_CONSUMER_SECRET = 'vVllrNJg4rh7e5oeDdXc47BPLYS743wwTsO1vuQiqhFpG5GApIeW6bgmMIixFGFz'
 MPESA_PASSKEY         = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
-MPESA_CALLBACK_URL    = 'http://127.0.0.1:8000/mpesa/callback/'
+MPESA_CALLBACK_URL    = 'https://freedom-raider-strongbox.ngrok-free.dev/api/mpesa/callback/'

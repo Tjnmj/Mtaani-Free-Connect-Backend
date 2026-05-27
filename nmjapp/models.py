@@ -70,3 +70,4 @@ class Reconnect(models.Model):
 
     def __str__(self):
         return f"{self.phone} | {self.mpesa_code}"
+    
