@@ -53,16 +53,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'nmj.wsgi.application'
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': 'ian2024@',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME':     os.environ.get('PGDATABASE', 'postgres'),
+        'USER':     os.environ.get('PGUSER', 'postgres'),
+        'PASSWORD': os.environ.get('PGPASSWORD', ''),
+        'HOST':     os.environ.get('PGHOST', 'localhost'),
+        'PORT':     os.environ.get('PGPORT', '5432'),
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
