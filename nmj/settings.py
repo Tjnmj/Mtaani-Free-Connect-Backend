@@ -108,3 +108,7 @@ MPESA_CONSUMER_KEY    = 'TrTWfrKATUb34uwnavyrZA15A0twpeFnXXZacxPQTRIdx8mD'
 MPESA_CONSUMER_SECRET = 'vVllrNJg4rh7e5oeDdXc47BPLYS743wwTsO1vuQiqhFpG5GApIeW6bgmMIixFGFz'
 MPESA_PASSKEY         = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
 MPESA_CALLBACK_URL = 'https://nmj-production.up.railway.app/api/mpesa/callback/'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://mtaani-free-connect-backend-production.up.railway.app',
+]
