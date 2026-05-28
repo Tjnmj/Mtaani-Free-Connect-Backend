@@ -2,6 +2,7 @@
 from datetime import timedelta
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -58,16 +59,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'nmj.wsgi.application'
 
-import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME':     os.environ.get('PGDATABASE', 'postgres'),
+        'NAME':     os.environ.get('PGDATABASE', 'railway'),
         'USER':     os.environ.get('PGUSER', 'postgres'),
-        'PASSWORD': os.environ.get('PGPASSWORD', ''),
-        'HOST':     os.environ.get('PGHOST', 'localhost'),
-        'PORT':     os.environ.get('PGPORT', '5432'),
+        'PASSWORD': os.environ.get('PGPASSWORD', 'TokERTMyyfoTeyJcBFDmFyeepdnaogxs'),
+        'HOST':     os.environ.get('PGHOST', 'trolley.proxy.rlwy.net'),
+        'PORT':     os.environ.get('PGPORT', '49971'),
     }
 }
 
