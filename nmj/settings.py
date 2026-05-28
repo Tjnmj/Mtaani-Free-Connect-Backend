@@ -68,6 +68,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('PGPASSWORD', 'TokERTMyyfoTeyJcBFDmFyeepdnaogxs'),
         'HOST':     os.environ.get('PGHOST', 'trolley.proxy.rlwy.net'),
         'PORT':     os.environ.get('PGPORT', '49971'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
