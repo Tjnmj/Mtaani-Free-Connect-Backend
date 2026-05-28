@@ -112,3 +112,8 @@ MPESA_CALLBACK_URL = 'https://nmj-production.up.railway.app/api/mpesa/callback/'
 CSRF_TRUSTED_ORIGINS = [
     'https://mtaani-free-connect-backend-production.up.railway.app',
 ]
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
