@@ -254,7 +254,7 @@ class FreeTrialView(APIView):
         
         package, _ = Package.objects.get_or_create(
             name='Free Trial',
-            defaults={'duration_h': 0, 'price_ksh': 0, 'is_active': True}
+            defaults={'duration_h': 0, 'price_ksh': 0, 'is_active': False}
         )
         
         session = Session.objects.create(
