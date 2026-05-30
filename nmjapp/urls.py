@@ -13,7 +13,10 @@ from .views import (
     SessionDestroyView, PackageDestroyView,
     PaymentListView, PaymentDestroyView,
     VoucherListView, VoucherDestroyView,
-    RouterDestroyView, FreeTrialView
+    RouterDestroyView, FreeTrialView,PPPoEPlanListView, PPPoEPlanDestroyView,
+    IPPoolListView, IPPoolDestroyView,
+    PPPoEClientListView, PPPoEClientDestroyView,
+    PPPoEClientStatusView, PPPoERenewView, PPPoECallbackView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -39,4 +42,13 @@ urlpatterns = [
     path('vouchers/<pk>/',      VoucherDestroyView.as_view()),
     path('routers/<pk>/',       RouterDestroyView.as_view()),
     path('free-trial/',      FreeTrialView.as_view(), name='free-trial'),
+    path('pppoe/plans/',               PPPoEPlanListView.as_view()),
+    path('pppoe/plans/<pk>/',          PPPoEPlanDestroyView.as_view()),
+    path('pppoe/ip-pools/',            IPPoolListView.as_view()),
+    path('pppoe/ip-pools/<pk>/',       IPPoolDestroyView.as_view()),
+    path('pppoe/clients/',             PPPoEClientListView.as_view()),
+    path('pppoe/clients/<pk>/',        PPPoEClientDestroyView.as_view()),
+    path('pppoe/client/<str:username>/', PPPoEClientStatusView.as_view()),
+    path('pppoe/renew/',               PPPoERenewView.as_view()),
+    path('pppoe/callback/',            PPPoECallbackView.as_view()),
 ]

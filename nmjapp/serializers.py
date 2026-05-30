@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment
 
 #login
 class UserSerializer(serializers.ModelSerializer):
@@ -85,3 +85,25 @@ class DashboardStatsSerializer(serializers.Serializer):
     pending_payments   = serializers.IntegerField()
     routers_online     = serializers.IntegerField()
     routers_total      = serializers.IntegerField()
+
+#ppoe plan
+class PPPoEPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = PPPoEPlan
+        fields = ['id', 'name', 'price_ksh', 'speed_up', 'speed_down', 'duration_days', 'is_active']
+
+class IPPoolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = IPPool
+        fields = ['id', 'name', 'subnet', 'gateway', 'created_at']
+
+class PPPoEClientSerializer(serializers.ModelSerializer):
+    plan_name = serializers.CharField(source='plan.name', read_only=True)
+    class Meta:
+        model  = PPPoEClient
+        fields = ['id', 'full_name', 'phone', 'username', 'password', 'plan', 'plan_name', 'ip_pool', 'static_ip', 'status', 'activated_at', 'expires_at', 'created_at']
+
+class PPPoEPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = PPPoEPayment
+        fields = ['id', 'client', 'phone', 'amount', 'mpesa_code', 'checkout_req_id', 'paid_at', 'created_at']

@@ -1,4 +1,4 @@
-from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer, FreeTrialSerializer
+from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer, FreeTrialSerializer,PPPoEPlanSerializer, PPPoEClientSerializer, IPPoolSerializer, PPPoEPaymentSerializer
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment
 from .mpesa import stk_push
 from datetime import timedelta 
 from datetime import date
@@ -266,3 +266,103 @@ class FreeTrialView(APIView):
         )
         FreeTrial.objects.create(device_id=device_id)
         return Response({"session_id": str(session.id), "status": "active"})
+    
+#ppoe plans
+class PPPoEPlanListView(generics.ListCreateAPIView):
+    queryset           = PPPoEPlan.objects.all()
+    serializer_class   = PPPoEPlanSerializer
+    permission_classes = [IsAuthenticated]
+
+class PPPoEPlanDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = PPPoEPlan.objects.all()
+    serializer_class   = PPPoEPlanSerializer
+    permission_classes = [IsAuthenticated]
+
+class IPPoolListView(generics.ListCreateAPIView):
+    queryset           = IPPool.objects.all()
+    serializer_class   = IPPoolSerializer
+    permission_classes = [IsAuthenticated]
+
+class IPPoolDestroyView(generics.RetrieveDestroyAPIView):
+    queryset           = IPPool.objects.all()
+    serializer_class   = IPPoolSerializer
+    permission_classes = [IsAuthenticated]
+
+class PPPoEClientListView(generics.ListCreateAPIView):
+    queryset           = PPPoEClient.objects.select_related('plan').order_by('-created_at')
+    serializer_class   = PPPoEClientSerializer
+    permission_classes = [IsAuthenticated]
+
+class PPPoEClientDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset           = PPPoEClient.objects.all()
+    serializer_class   = PPPoEClientSerializer
+    permission_classes = [IsAuthenticated]
+
+class PPPoEClientStatusView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, username):
+        try:
+            client = PPPoEClient.objects.select_related('plan').get(username=username)
+        except PPPoEClient.DoesNotExist:
+            return Response({"error": "Client not found"}, status=404)
+        serializer = PPPoEClientSerializer(client)
+        return Response(serializer.data)
+
+class PPPoERenewView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username   = request.data.get('username', '').strip()
+        phone      = request.data.get('phone', '').strip()
+
+        if phone.startswith('0'):
+            phone = '254' + phone[1:]
+        elif phone.startswith('+'):
+            phone = phone[1:]
+
+        try:
+            client = PPPoEClient.objects.select_related('plan').get(username=username)
+        except PPPoEClient.DoesNotExist:
+            return Response({"error": "Client not found"}, status=404)
+
+        payment = PPPoEPayment.objects.create(
+            client = client,
+            phone  = phone,
+            amount = client.plan.price_ksh,
+        )
+        result = stk_push(phone, client.plan.price_ksh, f"pppoe-{client.username}")
+
+        if result.get('ResponseCode') == '0':
+            payment.checkout_req_id = result['CheckoutRequestID']
+            payment.save()
+            return Response({"payment_id": payment.id, "message": "STK push sent"})
+        else:
+            payment.delete()
+            return Response({"error": result.get('errorMessage', 'STK push failed')}, status=400)
+
+class PPPoECallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        body        = request.data.get('Body', {}).get('stkCallback', {})
+        result_code = body.get('ResultCode')
+        checkout_id = body.get('CheckoutRequestID')
+
+        try:
+            payment = PPPoEPayment.objects.get(checkout_req_id=checkout_id)
+            client  = payment.client
+        except PPPoEPayment.DoesNotExist:
+            return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+        if result_code == 0:
+            items      = body.get('CallbackMetadata', {}).get('Item', [])
+            mpesa_code = next((i['Value'] for i in items if i['Name'] == 'MpesaReceiptNumber'), '')
+            payment.mpesa_code = mpesa_code
+            payment.paid_at    = timezone.now()
+            payment.save()
+            client.status     = 'active'
+            client.expires_at = timezone.now() + timedelta(days=client.plan.duration_days)
+            client.save()
+
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})

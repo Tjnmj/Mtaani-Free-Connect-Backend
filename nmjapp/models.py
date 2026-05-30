@@ -77,3 +77,59 @@ class FreeTrial(models.Model):
 
     def __str__(self):
         return self.device_id
+
+class PPPoEPlan(models.Model):
+    name         = models.CharField(max_length=100)
+    price_ksh    = models.IntegerField()
+    speed_up     = models.CharField(max_length=20)  
+    speed_down   = models.CharField(max_length=20)  
+    duration_days= models.IntegerField(default=30)
+    is_active    = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - KES {self.price_ksh}"
+
+
+class IPPool(models.Model):
+    name       = models.CharField(max_length=100)
+    subnet     = models.CharField(max_length=50)  
+    gateway    = models.CharField(max_length=20)  
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.subnet}"
+
+
+class PPPoEClient(models.Model):
+    STATUS = [
+        ('active',    'Active'),
+        ('expired',   'Expired'),
+        ('suspended', 'Suspended'),
+    ]
+    full_name    = models.CharField(max_length=100)
+    phone        = models.CharField(max_length=15)
+    username     = models.CharField(max_length=50, unique=True)
+    password     = models.CharField(max_length=50)
+    plan         = models.ForeignKey(PPPoEPlan, on_delete=models.PROTECT)
+    ip_pool      = models.ForeignKey(IPPool, on_delete=models.SET_NULL, null=True, blank=True)
+    static_ip    = models.GenericIPAddressField(null=True, blank=True)
+    status       = models.CharField(max_length=12, choices=STATUS, default='active')
+    activated_at = models.DateTimeField(auto_now_add=True)
+    expires_at   = models.DateTimeField()
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.username} | {self.plan.name} | {self.status}"
+
+
+class PPPoEPayment(models.Model):
+    client         = models.ForeignKey(PPPoEClient, on_delete=models.CASCADE)
+    phone          = models.CharField(max_length=15)
+    amount         = models.DecimalField(max_digits=8, decimal_places=2)
+    mpesa_code     = models.CharField(max_length=20, blank=True)
+    checkout_req_id= models.CharField(max_length=100, blank=True)
+    paid_at        = models.DateTimeField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.client.username} | {self.amount} | {self.mpesa_code}"
