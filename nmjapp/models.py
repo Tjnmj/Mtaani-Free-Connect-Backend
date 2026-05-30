@@ -70,4 +70,10 @@ class Reconnect(models.Model):
 
     def __str__(self):
         return f"{self.phone} | {self.mpesa_code}"
-    
+
+class FreeTrial(models.Model):
+    device_id  = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.device_id

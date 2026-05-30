@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Package, Payment, Session, Voucher, Reconnect,Router
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router
 
 #login
 class UserSerializer(serializers.ModelSerializer):
@@ -61,6 +61,14 @@ class RouterSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Router
         fields = ['id', 'name', 'ip_address', 'is_online', 'last_seen']
+
+    def create(self, validated_data):
+        return Reconnect.objects.create(**validated_data)  
+    
+class FreeTrialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = FreeTrial
+        fields = ['id', 'device_id', 'created_at']
 
     def create(self, validated_data):
         return Reconnect.objects.create(**validated_data)  

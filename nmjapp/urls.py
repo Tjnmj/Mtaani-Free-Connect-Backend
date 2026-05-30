@@ -13,7 +13,7 @@ from .views import (
     SessionDestroyView, PackageDestroyView,
     PaymentListView, PaymentDestroyView,
     VoucherListView, VoucherDestroyView,
-    RouterDestroyView,
+    RouterDestroyView, FreeTrialView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -38,4 +38,5 @@ urlpatterns = [
     path('vouchers/',           VoucherListView.as_view()),
     path('vouchers/<pk>/',      VoucherDestroyView.as_view()),
     path('routers/<pk>/',       RouterDestroyView.as_view()),
+    path('free-trial/',      FreeTrialView.as_view(), name='free-trial'),
 ]

@@ -1,4 +1,4 @@
-from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer
+from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer, FreeTrialSerializer
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Package, Payment, Session, Voucher, Reconnect,Router
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router
 from .mpesa import stk_push
 from datetime import timedelta 
 from datetime import date
@@ -236,3 +236,33 @@ class HotspotUserListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Session.objects.select_related('package').order_by('-created_at')
+    
+
+#free trial
+class FreeTrialView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class   = FreeTrialSerializer
+
+    def post(self, request):
+        device_id = request.data.get('device_id', '').strip()
+        if not device_id:
+            return Response({"error": "Device ID required"}, status=400)
+
+        if FreeTrial.objects.filter(device_id=device_id).exists():
+            return Response({"error": "Free trial already used on this device"}, status=400)
+
+        
+        package, _ = Package.objects.get_or_create(
+            name='Free Trial',
+            defaults={'duration_h': 0, 'price_ksh': 0, 'is_active': True}
+        )
+        
+        session = Session.objects.create(
+            phone='free-trial',
+            package=package,
+            status='active',
+            activated_at=timezone.now(),
+            expires_at=timezone.now() + timedelta(minutes=3),
+        )
+        FreeTrial.objects.create(device_id=device_id)
+        return Response({"session_id": str(session.id), "status": "active"})
