@@ -141,7 +141,7 @@ class ActivateVoucherView(APIView):
             package  = voucher.package,
             status   = 'active',
             activated_at = timezone.now(),
-            expires_at   = timezone.now() + timezone.timedelta(hours=voucher.package.duration_h),
+            expires_at = timezone.now() + timedelta(hours=voucher.package.duration_h)
         )
         voucher.is_used = True
         voucher.used_at = timezone.now()

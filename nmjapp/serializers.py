@@ -71,7 +71,7 @@ class FreeTrialSerializer(serializers.ModelSerializer):
         fields = ['id', 'device_id', 'created_at']
 
     def create(self, validated_data):
-        return Reconnect.objects.create(**validated_data)  
+        return FreeTrial.objects.create(**validated_data)  
 
 # dashboard
 class DashboardStatsSerializer(serializers.Serializer):
