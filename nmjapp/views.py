@@ -1,4 +1,4 @@
-from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer, FreeTrialSerializer,PPPoEPlanSerializer, PPPoEClientSerializer, IPPoolSerializer, PPPoEPaymentSerializer
+from .serializers import UserSerializer, PackageSerializer, PaymentSerializer, SessionSerializer, VoucherSerializer, ReconnectSerializer, RouterSerializer, DashboardStatsSerializer, FreeTrialSerializer,PPPoEPlanSerializer, PPPoEClientSerializer, IPPoolSerializer, PPPoEPaymentSerializer,ResellerSerializer, ResellerTopUpSerializer, ResellerVoucherBatchSerializer
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment,Reseller, ResellerTopUp, ResellerVoucherBatch
 from .mpesa import stk_push
 from datetime import timedelta 
 from datetime import date
@@ -30,7 +30,7 @@ class PackageDestroyView(generics.RetrieveDestroyAPIView):
     serializer_class   = PackageSerializer
     permission_classes = [IsAuthenticated]
 
-
+#payments
 class PaymentListView(generics.ListAPIView):
     queryset           = Payment.objects.select_related('session').order_by('-paid_at')
     serializer_class   = PaymentSerializer
@@ -278,6 +278,7 @@ class PPPoEPlanDestroyView(generics.RetrieveDestroyAPIView):
     serializer_class   = PPPoEPlanSerializer
     permission_classes = [IsAuthenticated]
 
+#ip pools
 class IPPoolListView(generics.ListCreateAPIView):
     queryset           = IPPool.objects.all()
     serializer_class   = IPPoolSerializer
@@ -288,6 +289,7 @@ class IPPoolDestroyView(generics.RetrieveDestroyAPIView):
     serializer_class   = IPPoolSerializer
     permission_classes = [IsAuthenticated]
 
+#ppoe clients
 class PPPoEClientListView(generics.ListCreateAPIView):
     queryset           = PPPoEClient.objects.select_related('plan').order_by('-created_at')
     serializer_class   = PPPoEClientSerializer
@@ -383,3 +385,220 @@ class PPPoEVerifyView(APIView):
         
         serializer = PPPoEClientSerializer(client)
         return Response(serializer.data)
+    
+# Reseller 
+class ResellerCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        username      = request.data.get('username')
+        password      = request.data.get('password')
+        phone         = request.data.get('phone')
+        business_name = request.data.get('business_name')
+
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "Username already exists"}, status=400)
+
+        user = User.objects.create_user(username=username, password=password)
+        reseller = Reseller.objects.create(
+            user=user,
+            phone=phone,
+            business_name=business_name,
+        )
+        return Response(ResellerSerializer(reseller).data, status=201)
+
+
+
+class ResellerListView(generics.ListAPIView):
+    queryset           = Reseller.objects.select_related('user').order_by('-created_at')
+    serializer_class   = ResellerSerializer
+    permission_classes = [IsAuthenticated]
+
+
+
+class ResellerLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from django.contrib.auth import authenticate
+
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user     = authenticate(username=username, password=password)
+
+        if not user:
+            return Response({"error": "Invalid credentials"}, status=401)
+
+        try:
+            reseller = Reseller.objects.get(user=user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller account"}, status=403)
+
+        if not reseller.is_active:
+            return Response({"error": "Account suspended. Contact admin."}, status=403)
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "access":        str(refresh.access_token),
+            "refresh":       str(refresh),
+            "reseller_id":   reseller.id,
+            "business_name": reseller.business_name,
+            "balance":       str(reseller.balance),
+        })
+
+
+class ResellerProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            reseller = Reseller.objects.get(user=request.user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller"}, status=403)
+        return Response(ResellerSerializer(reseller).data)
+
+
+
+class ResellerTopUpView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            reseller = Reseller.objects.get(user=request.user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller"}, status=403)
+
+        phone  = request.data.get('phone', '').strip()
+        amount = request.data.get('amount')
+
+        if phone.startswith('0'):
+            phone = '254' + phone[1:]
+        elif phone.startswith('+'):
+            phone = phone[1:]
+
+        topup  = ResellerTopUp.objects.create(reseller=reseller, amount=amount)
+        result = stk_push(phone, amount, f"topup-{reseller.id}")
+
+        if result.get('ResponseCode') == '0':
+            topup.checkout_req_id = result['CheckoutRequestID']
+            topup.save()
+            return Response({"topup_id": topup.id, "message": "STK push sent"})
+        else:
+            topup.delete()
+            return Response({"error": result.get('errorMessage', 'STK push failed')}, status=400)
+
+
+# M-Pesa callback for reseller 
+class ResellerTopUpCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        body        = request.data.get('Body', {}).get('stkCallback', {})
+        result_code = body.get('ResultCode')
+        checkout_id = body.get('CheckoutRequestID')
+
+        try:
+            topup    = ResellerTopUp.objects.get(checkout_req_id=checkout_id)
+            reseller = topup.reseller
+        except ResellerTopUp.DoesNotExist:
+            return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+        if result_code == 0:
+            items      = body.get('CallbackMetadata', {}).get('Item', [])
+            mpesa_code = next((i['Value'] for i in items if i['Name'] == 'MpesaReceiptNumber'), '')
+            topup.mpesa_code = mpesa_code
+            topup.paid_at    = timezone.now()
+            topup.save()
+            # Credit reseller balance
+            reseller.balance += topup.amount
+            reseller.save()
+
+        return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+
+# Reseller buys a batch of vouchers
+class ResellerBuyVouchersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            reseller = Reseller.objects.get(user=request.user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller"}, status=403)
+
+        package_id = request.data.get('package_id')
+        quantity   = int(request.data.get('quantity', 0))
+
+        try:
+            package = Package.objects.get(id=package_id, is_active=True)
+        except Package.DoesNotExist:
+            return Response({"error": "Package not found"}, status=404)
+
+        # Reseller gets 20% discount — adjust as needed
+        unit_price = package.price_ksh * 0.80
+        total_cost = unit_price * quantity
+
+        if reseller.balance < total_cost:
+            return Response({
+                "error": f"Insufficient balance. You need KES {total_cost} but have KES {reseller.balance}"
+            }, status=400)
+
+        # Deduct balance
+        reseller.balance -= total_cost
+        reseller.save()
+
+        # Generate voucher codes
+        batch = ResellerVoucherBatch.objects.create(
+            reseller   = reseller,
+            package    = package,
+            quantity   = quantity,
+            unit_price = unit_price,
+            total_cost = total_cost,
+        )
+
+        vouchers = []
+        for _ in range(quantity):
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            # make sure code is unique
+            while Voucher.objects.filter(code=code).exists():
+                code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            v = Voucher.objects.create(package=package, code=code)
+            vouchers.append(v.code)
+
+        return Response({
+            "batch_id":   batch.id,
+            "quantity":   quantity,
+            "unit_price": unit_price,
+            "total_cost": total_cost,
+            "balance_left": str(reseller.balance),
+            "vouchers":   vouchers,
+        })
+
+
+# Reseller views their vouchers
+class ResellerVouchersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            reseller = Reseller.objects.get(user=request.user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller"}, status=403)
+
+        batches = ResellerVoucherBatch.objects.filter(reseller=reseller).order_by('-created_at')
+        return Response(ResellerVoucherBatchSerializer(batches, many=True).data)
+
+
+# Reseller top up history
+class ResellerTopUpHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            reseller = Reseller.objects.get(user=request.user)
+        except Reseller.DoesNotExist:
+            return Response({"error": "Not a reseller"}, status=403)
+
+        topups = ResellerTopUp.objects.filter(reseller=reseller).order_by('-created_at')
+        return Response(ResellerTopUpSerializer(topups, many=True).data)

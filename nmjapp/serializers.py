@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment
+from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment,Reseller, ResellerTopUp, ResellerVoucherBatch
 
 #login
 class UserSerializer(serializers.ModelSerializer):
@@ -107,3 +107,23 @@ class PPPoEPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model  = PPPoEPayment
         fields = ['id', 'client', 'phone', 'amount', 'mpesa_code', 'checkout_req_id', 'paid_at', 'created_at']
+
+    
+#reseller
+class ResellerSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    class Meta:
+        model  = Reseller
+        fields = ['id', 'username', 'phone', 'business_name', 'balance', 'is_active', 'created_at']
+
+class ResellerTopUpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = ResellerTopUp
+        fields = ['id', 'reseller', 'amount', 'mpesa_code', 'paid_at', 'created_at']
+
+class ResellerVoucherBatchSerializer(serializers.ModelSerializer):
+    package_name = serializers.CharField(source='package.name', read_only=True)
+    reseller_name = serializers.CharField(source='reseller.business_name', read_only=True)
+    class Meta:
+        model  = ResellerVoucherBatch
+        fields = ['id', 'reseller', 'reseller_name', 'package', 'package_name', 'quantity', 'unit_price', 'total_cost', 'created_at']

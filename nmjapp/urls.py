@@ -18,6 +18,9 @@ from .views import (
     IPPoolListView, IPPoolDestroyView,
     PPPoEClientListView, PPPoEClientDestroyView,
     PPPoEClientStatusView, PPPoERenewView, PPPoECallbackView,
+    ResellerCreateView, ResellerListView, ResellerLoginView,
+    ResellerProfileView, ResellerTopUpView, ResellerTopUpCallbackView,
+    ResellerBuyVouchersView, ResellerVouchersView, ResellerTopUpHistoryView,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -53,4 +56,13 @@ urlpatterns = [
     path('pppoe/renew/',               PPPoERenewView.as_view()),
     path('pppoe/callback/',            PPPoECallbackView.as_view()),
     path('pppoe/verify/',             PPPoEVerifyView.as_view()),
+    path('reseller/login/',           ResellerLoginView.as_view()),
+    path('reseller/register/',        ResellerCreateView.as_view()),
+    path('reseller/list/',            ResellerListView.as_view()),
+    path('reseller/profile/',         ResellerProfileView.as_view()),
+    path('reseller/topup/',           ResellerTopUpView.as_view()),
+    path('reseller/topup/callback/',  ResellerTopUpCallbackView.as_view()),
+    path('reseller/buy-vouchers/',    ResellerBuyVouchersView.as_view()),
+    path('reseller/vouchers/',        ResellerVouchersView.as_view()),
+    path('reseller/topup/history/',   ResellerTopUpHistoryView.as_view()),
 ]

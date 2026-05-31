@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import FreeTrial, IPPool, PPPoEClient, PPPoEPlan,PPPoEPayment, Package,Payment,Reconnect,Voucher,Session,Router
+from .models import FreeTrial, IPPool, PPPoEClient, PPPoEPlan,PPPoEPayment, Package,Payment,Reconnect, Reseller, ResellerTopUp, ResellerVoucherBatch,Voucher,Session,Router
 
 admin.site.register(Package)
 admin.site.register(Payment)
@@ -12,3 +12,7 @@ admin.site.register(IPPool)
 admin.site.register(PPPoEPlan)
 admin.site.register(PPPoEClient)
 admin.site.register(PPPoEPayment)
+admin.site.register(Reseller)
+admin.site.register(ResellerTopUp)
+admin.site.register(ResellerVoucherBatch)
+

@@ -133,3 +133,38 @@ class PPPoEPayment(models.Model):
 
     def __str__(self):
         return f"{self.client.username} | {self.amount} | {self.mpesa_code}"
+
+class Reseller(models.Model):
+    user       = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone      = models.CharField(max_length=15)
+    business_name = models.CharField(max_length=100)
+    balance    = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_active  = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.business_name} | KES {self.balance}"
+
+
+class ResellerTopUp(models.Model):
+    reseller       = models.ForeignKey(Reseller, on_delete=models.CASCADE)
+    amount         = models.DecimalField(max_digits=8, decimal_places=2)
+    mpesa_code     = models.CharField(max_length=20, blank=True)
+    checkout_req_id= models.CharField(max_length=100, blank=True)
+    paid_at        = models.DateTimeField(null=True, blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.reseller.business_name} | KES {self.amount}"
+
+
+class ResellerVoucherBatch(models.Model):
+    reseller   = models.ForeignKey(Reseller, on_delete=models.CASCADE)
+    package    = models.ForeignKey(Package, on_delete=models.PROTECT)
+    quantity   = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=8, decimal_places=2)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.reseller.business_name} | {self.quantity} vouchers | {self.package.name}"
