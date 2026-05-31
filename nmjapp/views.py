@@ -5,7 +5,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
+from .mikrotik import pppoe_add_secret
 from django.utils import timezone
+from .mikrotik import (
+    hotspot_add_user, hotspot_remove_user, hotspot_kick_active_user,
+    pppoe_add_secret, pppoe_remove_secret, pppoe_disable_secret,
+    pppoe_enable_secret, pppoe_disconnect_active
+)
 from .models import FreeTrial, Package, Payment, Session, Voucher, Reconnect,Router,PPPoEPlan, PPPoEClient, IPPool, PPPoEPayment,Reseller, ResellerTopUp, ResellerVoucherBatch
 from .mpesa import stk_push
 from datetime import timedelta 
@@ -79,7 +85,7 @@ class InitiatePaymentView(APIView):
             return Response({"error": result.get('errorMessage', 'STK push failed')}, status=400)
 
 
-# Safaricom posts here after payment
+# callback
 class MpesaCallbackView(APIView):
     permission_classes = [AllowAny]
 
@@ -104,6 +110,12 @@ class MpesaCallbackView(APIView):
             session.activated_at = timezone.now()
             session.expires_at = timezone.now() + timedelta(hours=session.package.duration_h)
             session.save()
+            hotspot_add_user(
+            username=session.phone,
+            password=session.phone,       
+            profile=session.package.name,
+            comment=f"Session {session.id}"
+           )
         else:
             session.status = 'cancelled'
             session.save()
@@ -122,7 +134,11 @@ class SessionDestroyView(generics.RetrieveDestroyAPIView):
     queryset           = Session.objects.all()
     serializer_class   = SessionSerializer
     permission_classes = [IsAuthenticated]
-  
+    
+    def perform_destroy(self, instance):
+        hotspot_kick_active_user(instance.phone)
+        hotspot_remove_user(instance.phone)
+        instance.delete()
 
 
 # Voucher activation
@@ -295,10 +311,24 @@ class PPPoEClientListView(generics.ListCreateAPIView):
     serializer_class   = PPPoEClientSerializer
     permission_classes = [IsAuthenticated]
 
+    def perform_create(self, serializer):
+        client = serializer.save()
+        pppoe_add_secret(
+            username=client.username,
+            password=client.password,
+            profile=client.plan.name,  
+            comment=f"{client.full_name} | {client.phone}"
+        )
+
 class PPPoEClientDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset           = PPPoEClient.objects.all()
     serializer_class   = PPPoEClientSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        pppoe_disconnect_active(instance.username)
+        pppoe_remove_secret(instance.username)
+        instance.delete()
 
 class PPPoEClientStatusView(APIView):
     permission_classes = [AllowAny]
@@ -366,7 +396,7 @@ class PPPoECallbackView(APIView):
             client.status     = 'active'
             client.expires_at = timezone.now() + timedelta(days=client.plan.duration_days)
             client.save()
-
+            pppoe_enable_secret(client.username)
         return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
 
 class PPPoEVerifyView(APIView):

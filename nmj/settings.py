@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'nmjapp',
     'rest_framework',
     'corsheaders',
+    'django_apscheduler',
 ]
 
 MIDDLEWARE = [
@@ -38,6 +39,8 @@ MIDDLEWARE = [
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
 
 
 ROOT_URLCONF = 'nmj.urls'
@@ -117,3 +120,9 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SAMESITE = 'None'
+
+MIKROTIK_HOST='192.168.1.1'
+MIKROTIK_USER='admin'
+MIKROTIK_PASSWORD='password'
+MIKROTIK_HOTSPOT_SERVER='hotspot1'
+MIKROTIK_PPPOE_SERVER='pppoe-server'
