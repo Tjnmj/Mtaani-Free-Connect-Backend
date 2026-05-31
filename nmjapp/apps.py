@@ -6,5 +6,7 @@ class NmjappConfig(AppConfig):
     name = 'nmjapp'
     
     def ready(self):
-        from . import scheduler
-        scheduler.start()
+        import os
+        if os.environ.get('RUN_MAIN') != 'true':
+            from . import scheduler
+            scheduler.start()

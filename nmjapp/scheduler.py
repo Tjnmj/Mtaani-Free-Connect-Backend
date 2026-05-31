@@ -34,7 +34,6 @@ def expire_pppoe_clients():
         client.save()
         print(f"[SCHEDULER] Expired PPPoE client: {client.username}")
 
-
 def start():
     scheduler = BackgroundScheduler()
     scheduler.add_jobstore(DjangoJobStore(), 'default')
@@ -54,5 +53,8 @@ def start():
         replace_existing=True,
     )
 
-    scheduler.start()
-    print("[SCHEDULER] Started successfully.")
+    try:
+        scheduler.start()
+        print("[SCHEDULER] Started successfully.")
+    except Exception as e:
+        print(f"[SCHEDULER] Could not start: {e}")
