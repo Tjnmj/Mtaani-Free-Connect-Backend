@@ -366,3 +366,20 @@ class PPPoECallbackView(APIView):
             client.save()
 
         return Response({"ResultCode": 0, "ResultDesc": "Accepted"})
+
+class PPPoEVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username', '').strip()
+        password = request.data.get('password', '').strip()
+        try:
+            client = PPPoEClient.objects.select_related('plan').get(username=username)
+        except PPPoEClient.DoesNotExist:
+            return Response({"error": "Account not found"}, status=404)
+        
+        if client.password != password:
+            return Response({"error": "Incorrect password"}, status=401)
+        
+        serializer = PPPoEClientSerializer(client)
+        return Response(serializer.data)

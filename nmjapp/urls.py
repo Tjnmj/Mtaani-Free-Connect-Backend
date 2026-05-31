@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     CreateUserView,
+    PPPoEVerifyView,
     PackageListView,
     InitiatePaymentView,
     MpesaCallbackView,
@@ -51,4 +52,5 @@ urlpatterns = [
     path('pppoe/client/<str:username>/', PPPoEClientStatusView.as_view()),
     path('pppoe/renew/',               PPPoERenewView.as_view()),
     path('pppoe/callback/',            PPPoECallbackView.as_view()),
+    path('pppoe/verify/',             PPPoEVerifyView.as_view()),
 ]
